@@ -1,0 +1,3 @@
+3/8/2020:
+	- confirmed correct roots/poles of test function (analytic example f from GRPF code) found and written to output files. 
+	- Next step is to write the python function to return the determinant of the G_SLR matrix (in pyfunc.py)
