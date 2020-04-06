@@ -405,6 +405,25 @@ def T_1d_trans(wc, d, t, kx, nind):
 #def 
 
 
+def build_T_block(wc, d, t, kx, nind):
+	'''
+	Input Arguments:
+	- wc : complex frequency [eV].
+	- d  : intra-sub-lattice site periodicity [nm]
+	- t  : gap distance between two NPs within each unit cell [nm]
+	- kx : in-plane wave vector along chain (x) axis [nm^(-1)]
+	- nind: background refractive index.
+	
+	NOTE: it is assumed the chain axis is along x-direction
+	'''
+	T = zeros((3,3), dtype=complex)
+	T[0,0] = T_1d_long(wc, d, t, kx, nind) 
+	T[1,1] = T_1d_trans(wc, d, t, kx, nind)
+	T[2,2] = T[1,1]
+	return T
+#def
+
+
 #################################
 #	Lattice Sum		#
 #################################

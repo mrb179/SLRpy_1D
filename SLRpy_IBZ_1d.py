@@ -14,24 +14,31 @@ from sys import exit, argv
 CREATED: MRB Spring 2020
 
 NOTES:
-
+	- This was adapted from SLRpy_intBZ.py on Xenon (For Jaydeep Paper)
 '''
 
 if __name__ == "__main__":
 
-	run_type = disp
-	wmin = 
-	wmax = 
-	wnum = 
-	nind = 
-	pol_state   = run_settings["pol_state"]
-	k_start = run_settings["k_start"]
-	k_stop  = run_settings["k_stop"]
-	k_num   = run_settings["k_num"]
-	'''
+	# Hard-coded input params #
 
-	out_file_name_base = argv[1].split(".in")[0]
-	out_file_name = out_file_name_base + ".out"
+	run_type  = 'BZint' 			# BZint is only option tested
+	wmin      = 1240/2.6 				# minimum wavelength 
+	wmax      = 1240/3.8 				# maximum wavelength 
+	wnum      = 51 				# number of wavelengths 
+	nind      = 1.0 				# background refractive index 
+	d         = 400 				# chain periodicity [nm]
+	t         = 60 				# dipole displacement along x-direction
+	r_dip     = [0,1,0] 		# unit vector specifying dipole orientation
+	pol_state = None 		
+	kx_min    = 0.0 			# minimum k-value 
+	kx_max    = pi/d 			# maximum k-value 
+	kx_num    = 51
+	BZ_fac    = 2  				# multiplicative factor if BZ symmetries are invoked
+	long_polarizability_path   = "polarizability_Ag_80nmD_n1p0.out"
+ 	short_polarizability_path  = "polarizability_Ag_80nmD_n1p0.out"
+	out_file_name = "slrpy_1d_ibz.out"
+
+
 	'''
 	# Use this block when reading input params from SLRpy input file #	
 	
@@ -58,14 +65,23 @@ if __name__ == "__main__":
 	k_start = run_settings["k_start"]
 	k_stop  = run_settings["k_stop"]
 	k_num   = run_settings["k_num"]
-	'''
 
 	out_file_name_base = argv[1].split(".in")[0]
 	out_file_name = out_file_name_base + ".out"
+	'''
+
+
+	#############
+	#	CODE 	#
+	#############
 
 	# print summary of sub-lattice settings:
-	for sl in lattice_list:
-		sl.info()
+	#for sl in lattice_list:
+	#	sl.info()
+
+
+	# create lattice list (really just to hold polarizability data):
+	lattice_list = [sublattice(None, None, [0,0,0], long_polarizability_path, short_polarizability_path)]
 
 
 	plot_pol  = False
@@ -128,11 +144,6 @@ if __name__ == "__main__":
 		print("Num. wavelength: {0:d}".format(wnum))
 		print("")
 
-		# Testing:
-		if run_type == "field":
-			waves = [run_settings["field_calc_settings"]["wavelength"]]
-		# End Testing
-
 		# interpolate polarizability data:
 		# create complex polarizability array:
 		# 
@@ -149,8 +160,8 @@ if __name__ == "__main__":
 		#pol_imag_func = interpolate.InterpolatedUnivariateSpline(pol_data[:,0], pol_data[:,2])
 		pol_real_func = interpolate.InterpolatedUnivariateSpline(ipol_data[:,0], ipol_data[:,1])
 		pol_imag_func = interpolate.InterpolatedUnivariateSpline(ipol_data[:,0], ipol_data[:,2])
-		pol_real = pol_real_func(waves)*4*pi
-		pol_imag = pol_imag_func(waves)*4*pi
+		pol_real = pol_real_func(waves)
+		pol_imag = pol_imag_func(waves)
 		inv_alpha_long = array([complex(pol_real[w], pol_imag[w]) for w in range(len(waves))])
 		sl.ipol_long = inv_alpha_long
 
@@ -206,14 +217,14 @@ if __name__ == "__main__":
 		#pol_imag_func = interpolate.InterpolatedUnivariateSpline(pol_data[:,0], pol_data[:,2])
 		pol_real_func = interpolate.InterpolatedUnivariateSpline(ipol_data[:,0], ipol_data[:,1])
 		pol_imag_func = interpolate.InterpolatedUnivariateSpline(ipol_data[:,0], ipol_data[:,2])
-		pol_real = pol_real_func(waves)*4*pi
-		pol_imag = pol_imag_func(waves)*4*pi
+		pol_real = pol_real_func(waves)
+		pol_imag = pol_imag_func(waves)
 		inv_alpha_short = array([complex(pol_real[w], pol_imag[w]) for w in range(len(waves))])
 		sl.ipol_short = inv_alpha_short
 	#for
 
 
-	# ready output file:
+	# ready output files:
 	out_file = open(out_file_name, 'w')
 
 	if run_type == "dispersion":
@@ -334,8 +345,11 @@ if __name__ == "__main__":
 
 	if run_type == "BZint":
 
-		I     = eye(3)
+		Ek_file  = open("Ek.out", 'w')
+		alpha_k_file = open("alpha_k.out", 'w')
 
+		# Note: 1d equivalents of these next 2 functions (build_T_block, and build_S_block) are defined in pyfunc.py
+		'''
 		def Tk(w_, sl_, re_, kx_, ky_, nind_ ):
 			kparr_mag = sqrt(kx_**2 + ky_**2)
 			k         = 2*pi*nind_/w_ 
@@ -371,9 +385,7 @@ if __name__ == "__main__":
 
 		#def
 
-
 		def make3x3(w_, iw_, sl_, re_, kx_, ky_, nind_):
-
 			inv_alpha = array([sl.ipol_long[iw], sl.ipol_long[iw], sl.ipol_short[iw]])*I
 
 			tk = Tk(w_, sl_, re_, kx_, ky_, nind_ )
@@ -389,22 +401,14 @@ if __name__ == "__main__":
 
 
 		def generate_integrand(w_, iw_, sl_, re_, kx_, ky_, nind_):
-			#print(kx_.shape)
-			#print(ky_.shape)
 			ikx = kx_.shape[0]
 			iky = ky_.shape[0]
 			B = zeros((ikx, iky, 3, 3), dtype=complex)
-			#print("")
-			#print("shape of B:")
-			#print(B.shape)
-			#print("")
-			'''
 			Note:
 				Because I'm only populating 1/8 of the BZ with non-zero
 				values, the integrand will need to be multiplied by 8 at 
 				the end! This also only works for the case of the cubc
 				lattice and will need to be generalized later.
-			'''
 			for i in range(len(kx_)):
 				for j in range(len(ky_)):
 					if kx_[i] >= ky_[j]:
@@ -412,37 +416,86 @@ if __name__ == "__main__":
 			return B
 
 		#def
+		'''
+
+		# construct integrand at a given point in reciprocal space:
+		def make3x3(w_, iw_, sl_, d_, t_, kx_, nind_):
+			'''
+			inputs:
+				- w_  	: vacuum wavelength [nm]
+				- iw_ 	: index of vacuum wavelength in wavelength list
+				- sl_ 	: sub-lattice object (holds polarizability info.) 
+				- t_  	: displacement of dipole along x-direc. relative to origin
+				- kx_ 	: in-plane wavector [nm^-1]
+				- nind_ : background refractive index
+			returns:
+				- AA    : 3x3 array to be integrated over 
+			'''
+			# lattice/interaction sum functions take frequencies (eV) as input:
+			wc = 2*pi*hbar*c/w_
+
+			inv_alpha = array([sl.ipol_long[iw_], sl.ipol_long[iw_], sl.ipol_short[iw_]])*I
+			sk = build_S_block(wc, d_, kx_, nind_)
+			tk_01 = build_T_block(wc, d_, t_, kx_, nind_)
+			tk_10 = build_T_block(wc, d_, -1*t_, kx_, nind_)
+			B  = inv_alpha - sk 
+			Binv = inv(B)
+			A  = dot(tk_10, Binv)
+			AA = dot(A, tk_01)
+
+			# write data to respective files:
+			abz = (2*pi/d)**-1
+			Ek_file.write("{0:.4f}\t{1:.6e}\t{2:.6e}\t{3:.6e}\n".format(wc, kx_, abz*real(tk_01[1,1]), abz*imag(tk_01[1,1]) ))
+			alpha_k_file.write("{0:.4f}\t{1:.6e}\t{2:.6e}\t{3:.6e}\n".format(wc, kx_, real(Binv[1,1]), imag(Binv[1,1]) ))
+
+			return AA 
+
+		#def
+
+
+		def generate_integrand(w_, iw_, sl_, d_, t_, kx_, nind_):
+			'''
+			inputs:
+				- w_  	: vacuum wavelength [nm]
+				- iw_ 	: index of vacuum wavelength in wavelength list
+				- sl_ 	: sub-lattice object (holds polarizability info.) 
+				- t_  	: displacement of dipole along x-direc. relative to origin
+				- kx_ 	: in-plane wavector [nm^-1]
+				- nind_ : background refractive index
+			returns:
+				- B    : [num_kx, 3, 3] array of integrand (3x3) evaluations 
+			'''
+			ikx = kx_.shape[0]
+			B = zeros((ikx, 3, 3), dtype=complex)
+			'''
+			Note:
+				Because I'm only populating 1/2 of the BZ with non-zero
+				values, the integrand will need to be multiplied by 2 at 
+				the end!
+			'''
+			for i in range(len(kx_)):
+			 	B[i,0:3,0:3] = make3x3(w_, iw_, sl_, d_, t_, kx_[i], nind_)
+
+			return B
+
+		#def
 
 
 		print("### BZ integrate ###")
 
-		# emitter position [nm] w.r.t. origin at center of a NP: 
-		rd = array([50., 0., 0.])
+		# define identity matrix:
+		I = eye(3,3)
 
-		# Reciprocal Space:
-		b1, b2 = recipLatt(sl.a1, sl.a2)
-		ABZ = norm(cross(b1, b2))
+		# area (length) of Brillouin Zone:
+		ABZ = 2*pi/d
 
-		'''
-		## Incident Field Polarization ##
-		'''
-		E0 = array([1,0,0])
+		# create normalized unit vector specifying dipole orientation:
+		r_dip = array(r_dip)/sqrt(dot(r_dip,r_dip))
 
-
-		# set integration boundaries in k-space:
-		kx_min = 0.0
-		kx_max = pi/450.
-		kx_num = 75
-		ky_min = 0.0
-		ky_max = pi/450.
-		ky_num = 75
-
+		# initialize array of kx values:
 		kx = linspace(kx_min, kx_max, num=kx_num) 
-		ky = linspace(ky_min, ky_max, num=ky_num)
 		dkx = (kx_max - kx_min)/(kx_num-1)
 		print("\t- k_x resolution: {0:f}".format(dkx))
-		dky = (ky_max - ky_min)/(ky_num-1)
-		print("\t- k_y resolution: {0:f}".format(dky))
 
 		# temporary holding containers for 0,0 elements of eta:
 		tmp_list_r = []
@@ -456,43 +509,55 @@ if __name__ == "__main__":
 
 			t_start = time.time()
 
-			print("Wavelength Number {0:d}: {1:.1f}% complete".format(iw, iw/len(waves)))
+			print("Wavelength Number {0:d}: {1:.1f}% complete".format(iw, iw/len(waves)*100))
 
 			eta = zeros((3,3), dtype=complex)
 
-			imat = generate_integrand(w, iw, sl, rd, kx, ky, nind)
+			imat = generate_integrand(w, iw, sl, d, t, kx, nind)
 
 			# loop over 3x3 Cartesian components and integrate: 
 			print("**WARNING**")
-			print("Currently ONLY looking at i=0,j=0 element of eta! See line ~ 440")
+			print("Currently ONLY looking at i=0, j=0 element of eta! See line ~ 440")
 			for i in range(1):
 				for j in range(1):
+
+                                        # this is just a trick to get yy component. Comment out for xx component:
+                                        i = 1
+                                        j = 1
+
 					# integrate over first axis:
-					int_over_x = trapz(imat[:,:,i,j], x=kx, dx=dkx, axis=0)
+					#int_over_x = trapz(imat[:,:,i,j], x=kx, dx=dkx, axis=0)
+					int_val = trapz(imat[:,i,j], x=kx, dx=dkx, axis=0)
 
 					# integrate over second axis:
-					int_val = trapz(int_over_x, x=ky, dx=dky, axis=-1)
+					#int_val = trapz(int_over_x, x=ky, dx=dky, axis=-1)
 
-					eta[i,j] = 8 * int_val/ABZ  # note: factor of 8 is because only integrated 1/8 of BZ
+					eta[i,j] = BZ_fac * int_val/ABZ  # note: BZ_fac can be used to account for BZ symmetry
 				#
 			#
 
-			tmp_list_r.append(eta[0,0].real)
-			tmp_list_i.append(eta[0,0].imag)
+                        # This block for xx component:
+			tmp_list_r.append(eta[1,1].real)
+			tmp_list_i.append(eta[1,1].imag)
+                        
+                        # This block for xx component:
+			#tmp_list_r.append(eta[0,0].real)
+			#tmp_list_i.append(eta[0,0].imag)
 
-			out_file.write("{0:.2f}\t{1:.6f}\t{2:.6f}\n".format(w, eta[0,0].real, eta[0,0].imag))
+			# calculate Purcell Factor:
+			k = 2*pi*nind/w
+			prefactor = 6*pi/(nind*k**3)
+			PF = 1 + prefactor*tmp_list_i[-1]
+
+
+
+
+			out_file.write("{0:.2f}\t{1:.6f}\t{2:.6f}\t{3:.3f}\n".format(w, eta[0,0].real, eta[0,0].imag, PF))
 
 			t_end = time.time()
 			print("Time elapsed for wavelength {0:d}: {1:.1f}".format(iw, t_end - t_start))
 
 		#for_waves
-
-		#plt.figure()
-		#plt.plot(waves, tmp_list_r, color='red', label='real')
-		#plt.plot(waves, tmp_list_i, color='blue', label='imag.')
-		#plt.xlabel("waves")
-		#plt.show()
-
 	
 	#if
 
@@ -503,7 +568,10 @@ if __name__ == "__main__":
 		print("dipole_array source not yet implemented")
 	#if
 
+	# house-keeping:
 	out_file.close()
+	Ek_file.close()
+	alpha_k_file.close()
 
 	print("Finished Successfully")
 	print("Data written to: {0:s}".format(out_file_name))
