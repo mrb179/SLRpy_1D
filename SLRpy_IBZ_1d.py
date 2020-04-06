@@ -444,7 +444,7 @@ if __name__ == "__main__":
 			AA = dot(A, tk_01)
 
 			# write data to respective files:
-			abz = (2*pi/d)**-1
+			abz = (2*pi/d)
 			Ek_file.write("{0:.4f}\t{1:.6e}\t{2:.6e}\t{3:.6e}\n".format(wc, kx_, abz*real(tk_01[1,1]), abz*imag(tk_01[1,1]) ))
 			alpha_k_file.write("{0:.4f}\t{1:.6e}\t{2:.6e}\t{3:.6e}\n".format(wc, kx_, real(Binv[1,1]), imag(Binv[1,1]) ))
 
