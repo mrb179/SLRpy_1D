@@ -2,9 +2,7 @@ from __future__ import division, print_function
 from numpy import pi, sqrt, sin, cos, array, dot, linspace, matmul, cross, exp, conj, zeros, identity, loadtxt, arcsin, arccos, eye, trapz
 from scipy import interpolate
 from numpy.linalg import inv, solve
-#from sum_dyadic_test import *
 from pyfunc import *
-#from SLRpy_input import *
 from sublattice import *
 import pylab as plt
 import time
@@ -21,14 +19,15 @@ if __name__ == "__main__":
 
 	# Hard-coded input params #
 
-	run_type  = 'BZint' 			# BZint is only option tested
-	wmin      = 1240/2.6 				# minimum wavelength 
-	wmax      = 1240/3.8 				# maximum wavelength 
-	wnum      = 51 				# number of wavelengths 
+	run_type  = 'site_NN' 			# BZint and site_NN are the only options tested
+	NN_order  = 0  
+	wmin      = 1240/2.6 			# minimum wavelength 
+	wmax      = 1240/3.8 			# maximum wavelength 
+	wnum      = 151 					# number of wavelengths 
 	nind      = 1.0 				# background refractive index 
 	d         = 400 				# chain periodicity [nm]
-	t         = 60 				# dipole displacement along x-direction
-	r_dip     = [0,1,0] 		# unit vector specifying dipole orientation
+	t         = 50 					# dipole displacement along x-direction
+	r_dip     = [0,1,0] 			# unit vector specifying dipole orientation
 	pol_state = None 		
 	kx_min    = 0.0 			# minimum k-value 
 	kx_max    = pi/d 			# maximum k-value 
@@ -558,66 +557,169 @@ if __name__ == "__main__":
 			print("Time elapsed for wavelength {0:d}: {1:.1f}".format(iw, t_end - t_start))
 
 		#for_waves
+
+		Ek_file.close()
+		alpha_k_file.close()
 	
 	#if
 
 
 
 
-	if source_type == "dipole_array":
-		print("dipole_array source not yet implemented")
+	if run_type == "site_NN":
+
+		NN_order = int(NN_order)
+		print("### Site Space -- Nearest Neighbor ###")
+		print("\tNN Order = {0:d}\n".format(NN_order))
+		out_file.write("# Site-Space NN_order = {0:d}".format(NN_order))
+
+		# Determine total number of dipoles and degrees of freedom:
+		num_dof = 6*(NN_order + 1)
+		num_p   = 2*(NN_order + 1)
+
+		# define identity matrix:
+		I = eye(3,3)
+
+		# create normalized unit vector specifying dipole orientation: 
+		#r_dip = array(r_dip)/sqrt(dot(r_dip,r_dip)) 	# orientation
+		#r_d   = array([t, 0, 0]) 						# position
+		r_dip = array([0,0,1]) 	# orientation
+		r_d   = array([0, 0, t]) 						# position
+		print("Dipole Orientation:")
+		print(r_dip)
+		print("Dipole Position:")
+		print(r_d)
+
+		# create list of NP positions (length = 2*NN_order + 1)
+		r_NP_list = [ array([n*d, 0, 0]) for n in range(-NN_order,NN_order+1) ]
+		print("\nNP positions:")
+		print(r_NP_list)
+
+		# create sublattice object to hold emitter dipole 
+		# For now using same polarizability as NP (physically, answer should not depend on this ... (should test))
+		#beta_obj = sublattice(None, None, [0,0,0], long_polarizability_path, short_polarizability_path)
+
+		# construct E_vec to only drive emitter dipole:
+		E_vec = zeros((num_dof,1), dtype=complex)
+		E_vec[0:3,0] = r_dip
+		print("\nDriving Field")
+		print(E_vec)
+
+		# container to hold Purcell factor data:
+		PF_NN   = []
+		Es_arr  = []
+
+		# loop over wavelengths:
+		for iw, w in enumerate(waves):
+
+			# construct M tensor:
+			M = zeros((num_dof, num_dof), dtype=complex)
+			for i in range(num_p):
+				for j in range(num_p):
+					if i == j :
+						# diagonal (polarizability) block:
+						if i == 0:
+							# emitter polarizability:
+							sl = lattice_list[0]
+							A = array([sl.ipol_long[iw], sl.ipol_long[iw], sl.ipol_short[iw]])*I
+
+							# fill suitable block of GD:
+							M[3*i,3*i]     = A[0,0]
+							M[3*i,3*i+1]   = A[0,1]
+							M[3*i,3*i+2]   = A[0,2]
+							M[3*i+1,3*i]   = A[1,0]
+							M[3*i+1,3*i+1] = A[1,1]
+							M[3*i+1,3*i+2] = A[1,2]
+							M[3*i+2,3*i]   = A[2,0]
+							M[3*i+2,3*i+1] = A[2,1]
+							M[3*i+2,3*i+2] = A[2,2]
+						else:
+							# NP polarizability:
+							sl = lattice_list[0]
+							A = array([sl.ipol_long[iw], sl.ipol_long[iw], sl.ipol_short[iw]])*I
+	
+							# fill suitable block of GD:
+							M[3*i,3*i]     = A[0,0]
+							M[3*i,3*i+1]   = A[0,1]
+							M[3*i,3*i+2]   = A[0,2]
+							M[3*i+1,3*i]   = A[1,0]
+							M[3*i+1,3*i+1] = A[1,1]
+							M[3*i+1,3*i+2] = A[1,2]
+							M[3*i+2,3*i]   = A[2,0]
+							M[3*i+2,3*i+1] = A[2,1]
+							M[3*i+2,3*i+2] = A[2,2]
+							
+					else:
+						# off-diagonal (coupling) block:
+						if i == 0:
+							reval   = r_d
+						else:
+							reval   = r_NP_list[i-1]
+						if j == 0:
+							rsource = r_d
+						else:
+							print(j)
+							rsource = r_NP_list[j-1] 
+
+						A  = -1*GD_single(reval, rsource, w, nind)
+	
+						M[3*i,3*j]     = A[0,0]
+						M[3*i,3*j+1]   = A[0,1]
+						M[3*i,3*j+2]   = A[0,2]
+						M[3*i+1,3*j]   = A[1,0]
+						M[3*i+1,3*j+1] = A[1,1]
+						M[3*i+1,3*j+2] = A[1,2]
+						M[3*i+2,3*j]   = A[2,0]
+						M[3*i+2,3*j+1] = A[2,1]
+						M[3*i+2,3*j+2] = A[2,2]
+				#for
+			# end: M_tensor construction loop
+
+			# solve matrix equation for dipole moments:
+			P = solve(M, E_vec)
+
+			# pick out the moment of the driven emitter (should have shape (3,1)):
+			d_emitter = P[0:3,0]
+
+			# compute scattered field at the location of the emitter:
+			k = 2*pi*nind/w
+			Es = complex(0,0)
+			for n in range(num_p - 1):
+				Es += dot(GD_single(r_d, r_NP_list[n], w, nind), P[3*(n+1):3*(n+2),0])
+			#for 
+			Es_arr.append(Es)
+
+			# compute Purcell factor:
+			prefactor = 6*pi/(nind*k**3)
+			#PF = 1 + prefactor*dot( conj(d_emitter.T), Es ).imag[0]/(sqrt(dot(conj(d_emitter.T), d_emitter))).real
+			PF = 1 + prefactor*dot( conj(d_emitter.T), Es ).imag /((dot(conj(d_emitter.T), d_emitter).real))
+			PF_NN.append(PF)
+
+			# write to output file:
+			out_file.write("{0:.2f}\t{1:.4f}\n".format(w, PF))
+
+		# end: wavelength loop
+
+		# Optional Plotting:
+		if False:
+			print(PF_NN)
+			plt.figure(1)
+			plt.plot(1240/waves, PF_NN, color="red", label="NN = {0:d}".format(NN_order))
+			plt.xlabel("Energy (eV)")
+			plt.ylabel("Purcell Factor")
+			#plt.ylim((0,40))
+			plt.show()
+		#if
+
 	#if
+
+
+
 
 	# house-keeping:
 	out_file.close()
-	Ek_file.close()
-	alpha_k_file.close()
 
 	print("Finished Successfully")
 	print("Data written to: {0:s}".format(out_file_name))
-
-	'''
-	# plot inverse polarizability data [if plot_pol = True]:
-	if(plot_pol):
-		plt.figure(1)
-		plt.plot(waves, pol_real, color="red", label="Real")
-		plt.plot(waves, pol_imag, color="blue", label="Imag.")
-		if(plot_LS):
-			plt.plot(waves, SL_R, color="red", ls="--")
-			plt.plot(waves, SL_I, color="blue", ls="--")
-		plt.xlabel("$\lambda$ [nm]")
-		plt.ylabel(r"$\alpha^{-1}$ [nm$^{-3}$]")
-		plt.legend(loc="best")
-		plt.show()
-	#if
-
-	# calculate extinction efficiency:
-	k_array = 2*pi/waves
-	LS_array = array(LS_array)
-	geo_cross = pi*50.0**2
-	ext = 4*pi*k_array*((inv_alpha - LS_array)**(-1)).imag
-
-	if(plot_ext):
-		plt.figure(2)
-		plt.plot(waves, ext/geo_cross)
-		plt.xlabel("$\lambda$ [nm]")
-		plt.ylabel("Extinction Efficiency")
-		plt.ylim((0,40))
-		plt.show()
-	#if
-
-	if(save_data):
-		out_file_name = "slurpie.out"
-		out_file = open(out_file_name, 'w')
-		# print header:
-		# **__TO_DO__**
-		for i in range(len(waves)):
-			out_line = "{0:f}\t{1:e}\t{2:e}\t{3:e}\t{4:e}\t{5:f}\n".format(waves[i], pol_real[i], pol_imag[i], SL_R[i], SL_I[i], ext[i])
-			out_file.write(out_line)
-		#for
-		out_file.close()
-	#if
-	'''
-
 
 #if
