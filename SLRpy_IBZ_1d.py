@@ -20,7 +20,7 @@ if __name__ == "__main__":
 	# Hard-coded input params #
 
 	run_type  = 'site_NN' 			# BZint and site_NN are the only options tested
-	NN_order  = 0  
+	NN_order  = 1  
 	wmin      = 1240/2.6 			# minimum wavelength 
 	wmax      = 1240/3.8 			# maximum wavelength 
 	wnum      = 151 					# number of wavelengths 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 	kx_num    = 51
 	BZ_fac    = 2  				# multiplicative factor if BZ symmetries are invoked
 	long_polarizability_path   = "polarizability_Ag_80nmD_n1p0.out"
- 	short_polarizability_path  = "polarizability_Ag_80nmD_n1p0.out"
+	short_polarizability_path  = "polarizability_Ag_80nmD_n1p0.out"
 	out_file_name = "slrpy_1d_ibz.out"
 
 
@@ -519,10 +519,9 @@ if __name__ == "__main__":
 			print("Currently ONLY looking at i=0, j=0 element of eta! See line ~ 440")
 			for i in range(1):
 				for j in range(1):
-
-                                        # this is just a trick to get yy component. Comment out for xx component:
-                                        i = 1
-                                        j = 1
+					# this is just a trick to get yy component. Comment out for xx component:
+					i = 1
+					j = 1
 
 					# integrate over first axis:
 					#int_over_x = trapz(imat[:,:,i,j], x=kx, dx=dkx, axis=0)
@@ -535,11 +534,11 @@ if __name__ == "__main__":
 				#
 			#
 
-                        # This block for xx component:
+			# This block for xx component:
 			tmp_list_r.append(eta[1,1].real)
 			tmp_list_i.append(eta[1,1].imag)
                         
-                        # This block for xx component:
+			# This block for xx component:
 			#tmp_list_r.append(eta[0,0].real)
 			#tmp_list_i.append(eta[0,0].imag)
 
