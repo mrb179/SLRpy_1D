@@ -12,4 +12,6 @@ Directory Contents:
 
 NOTE:
 
+- Original IEEE paper by Piotr Kowalczyk: DOI: 10.1109/TAP.2018.2869213
+
 - The function that GRPF_python.m locates the roots and poles of must by defined in pyfunc.py with the name "f"
