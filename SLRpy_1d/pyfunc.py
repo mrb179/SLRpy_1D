@@ -111,6 +111,16 @@ def calc_pol(wc, r=10, nout=1.0):
 	return alpha
 #def
 
+
+
+# DEFINITION OF pyfunc.f() for single-NP example. This function is essentially identical to calc_pol() 
+# 	defined immediately above.
+def f(w_real, w_imag, r_NP, nout):
+	wc = complex(w_real, w_imag)
+	return calc_pol(wc, r=r_NP, nout=nout)
+#def
+
+
 def calc_pol_vecinput(ww, r, nout):
 	'''
 	- ww : this is a 1d vector with shape (2,), where ww[0] and ww[1] are the real and imag. parts of frequency, respectively. 
@@ -501,7 +511,10 @@ def GD_single(reval, rsource, wc, nind):
 
 
 # THIS WILL BE THE FUNCYION TO REPRODUCE THE ACS PHOTONICS PAPER:
-def f(w_real, w_imag, k_parallel, rnp, nind, d, t):
+#
+# NOTE:
+# 	- GRPF_python/main_dispersion.py is set up to run with this as pyfunc.f() with the analysis_parameters_TEMPLATE.m templated input files. 
+def f_ACS_Photon_dispersion(w_real, w_imag, k_parallel, rnp, nind, d, t):
 	'''
 	This function constructs the two-NP unit cell G_SLR matrix and returns its determinant 
 	evaluated at the complex angular frequency w = w_real + i*w_imag.
