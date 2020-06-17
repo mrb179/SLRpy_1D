@@ -28,6 +28,7 @@ clear classes;
 if count(py.sys.path, '') == 0
     %insert(py.sys.path,int32(0),'/home/mrb179/Projects/EigenvalueProblem/GRPF/PYTHON_GRPF/');
     insert(py.sys.path,int32(0),'/home/mrb179/Projects/SLRpy_1D/GRPF_python/');
+    insert(py.sys.path,int32(0),'/home/mrb179/Projects/SLRpy_1D/SLRpy_1d/');
 end
 modu = py.importlib.import_module('pyfunc');
 py.reload(modu);
