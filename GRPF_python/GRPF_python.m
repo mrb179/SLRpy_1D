@@ -26,7 +26,8 @@ format long;
 %
 clear classes;
 if count(py.sys.path, '') == 0
-    insert(py.sys.path,int32(0),'/home/mrb179/Projects/EigenvalueProblem/GRPF/PYTHON_GRPF/');
+    %insert(py.sys.path,int32(0),'/home/mrb179/Projects/EigenvalueProblem/GRPF/PYTHON_GRPF/');
+    insert(py.sys.path,int32(0),'/home/mrb179/Projects/SLRpy_1D/GRPF_python/');
 end
 modu = py.importlib.import_module('pyfunc');
 py.reload(modu);
@@ -54,7 +55,7 @@ while it<ItMax&&NrOfNodes<NodesMax
     for Node=NrOfNodes+1:NrOfNodes+size(NewNodesCoord,1)
         z=NodesCoord(Node,1)+1i*NodesCoord(Node,2);        
         disp("Made it this far");
-        FuntionValues(Node,1)= py.pyfunc.f(real(z), imag(z), K_parallel, RNP, Nind, d, t); %fun(z);% my function !!!!!!!!!!!!!!!!
+        FuntionValues(Node,1)= py.pyfunc.f(real(z), imag(z), RNP, Nind); % <------ If you change definition of f in pyfunc.py, need to change argument list here!!
 
         % TESTING:
         %MM = complex(py.pyfunc.f(real(z), imag(z), K_parallel, RNP, Nind, d, t)); %fun(z);% my function !!!!!!!!!!!!!!!!
