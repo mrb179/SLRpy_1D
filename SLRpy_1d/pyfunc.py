@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 from numpy import linspace, sqrt, pi, array, abs, meshgrid, zeros, exp, log, real, imag, eye, dot, outer
 import numpy.linalg as nl
-import matplotlib
+#import matplotlib
 #from matplotlib import pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 from scipy.special import spherical_jn, spherical_yn
@@ -10,7 +10,7 @@ from mpmath import fp, polylog, lerchphi,  re, im
 from SFP_dielectrics import Ag_JC
 from sys import exit
 
-def f_analytic(x, y, k_parallel, rnp, nind, d, t):
+def f(x, y, rnp, nind):
 	ic = complex(0,1)
 	z = complex(x,y)
 	w = (z-1)*((z-ic)**2)*((z+1)**3)/(z+ic)
@@ -104,8 +104,9 @@ def calc_pol(wc, r=10, nout=1.0):
 
 	'''
 	#wc = complex(wr, wi)
-	k = wc*nout/(hbar*c)
-	eps_Ag = Ag_drude(wc)
+	#k = wc*nout/(hbar*c)
+	k = wc*nout 
+	eps_Ag = Ag_drude(wc, params="PRB")
 	a1 = eval_a1(wc, r, eps_Ag, nout**2)
 	alpha = 6*pi*complex(0,1)*(nout**2)*a1/(k**3)
 	return alpha
@@ -115,7 +116,8 @@ def calc_pol(wc, r=10, nout=1.0):
 
 # DEFINITION OF pyfunc.f() for single-NP example. This function is essentially identical to calc_pol() 
 # 	defined immediately above.
-def f(w_real, w_imag, r_NP, nout):
+# THIS ISN't reproducing same thing as grid_search singleNP.py ... haven't figured out why yet.
+def f_singleNP(w_real, w_imag, r_NP, nout):
 	wc = complex(w_real, w_imag)
 	return calc_pol(wc, r=r_NP, nout=nout)
 #def

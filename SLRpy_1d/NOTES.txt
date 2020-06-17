@@ -1,0 +1,17 @@
+Directory Contents:
+
+- GRPF_python.m : slightly modified version of GRPF Matlab code that is made freely available at (https://github.com/PioKow/GRPF). Original code was modified to use GRPF Matlab code to find/log root and poles of functiones defined in Python. 
+
+- analysis_parameters.m : this file is required in order to run GRPF_python.m. This is where parameters controlling the search domain, mesh tolarance, max iterations, etc ... are set. If finding roots and poles of a function that depends on some parameters, each parameter must also be contained in this file (this is how information is passed to GRPF_python.m)
+
+- analysis_parameters_TEMPLATE.m : This is a template file, which has place-holders for various variables. This way, another script can be used (e.g. main.py), which can be used to read-in the template file, and then use string formatting in Python to fill the placeholders and generate new analysis_parameter.m files on the fly. This is useful when looking for roots/poles of a function for a range of parameter values. 
+
+- FindNextNode.m, disk_dom.m, fun.m, rect_dom.m, vinq.m, and vis.m : these are Matlab function definitions related to the GRPF algorithm that are required to run GRPF_python.m. These have not been modified from their original form found at (https://github.com/PioKow/GRPF)
+
+
+
+NOTE:
+
+- Original IEEE paper by Piotr Kowalczyk: DOI: 10.1109/TAP.2018.2869213
+
+- The function that GRPF_python.m locates the roots and poles of must by defined in pyfunc.py with the name "f"
